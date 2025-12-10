@@ -196,17 +196,17 @@ void solveProblems(AcequiaManager& manager)
 }
 */
 
-// Find region by it's name (North, South, East)
+// Function to find region by it's name (North, South, East).
 Region* findRegionByName(const std::vector<Region*>& regions, const std::string& name) {
-	for (auto r : regions) { // Loop through the regions
-		if (r->name == name) return r; // Return region name to pointer r.
+	for (auto r : regions) { 					// Loop through the regions and
+		if (r->name == name) return r; 	// return region name to pointer r.
 	}
-	return nullptr;
+	return nullptr; // If region is not found.
 }
 
-// Funciton to find excess water in region using r pointer establish in function above.
+// Funciton to find excess water in region using r pointer established in function above.
 double excess(const Region* r) {
-	return r->waterLevel - r->waterNeed;
+	return r->waterLevel - r->waterNeed; 
 }
 
 // Function to find how much wafer a region needs/missing.
@@ -215,22 +215,22 @@ double deficit(const Region* r) {
 	return d > 0 ? d : 0.0; // Condensed if-else expression if d is greater than 0 return the value of d, else return 0.0. ("condition" ? Value_if_true : Value_if_false)
 }
 
-// Dynamically choose flow rate based on deficit gap.
+// Function to dynamically choose flow rate based on deficit gap.
 double chooseFlow(double gap) {
-	if (gap > 15) return 1.0; 	// Large deficit.
+	if (gap > 15) return 1.0; 		// Large deficit.
 	if (gap > 5) return 0.85; 	 	// Medium deficit.
 	if (gap > 1) return 0.55; 		// small deficit.
 	if (gap > 0.001) return 0.1;	// tiny deficit.
-	return 0.0; 								// No deficit ignore.
+	return 0.0; 									// No deficit ignore.
 }
 
 void solveProblems(AcequiaManager& manager) {
 
-	// Get regions and canals from manager.
+	// Get regions and canals.
 	auto regions = manager.getRegions();
 	auto canals = manager.getCanals();
 
-	// Identify region names using findRegionByName funciton.
+	// Identify region names using findRegionByName funciton and storing them to respective variables.
 	Region* north = findRegionByName(regions, "North"); // Store the address of North region in variable north.
 	Region* south = findRegionByName(regions, "South"); // Same as above but for south.
 	Region* east = findRegionByName(regions, "East"); 	// Repeated for East.
@@ -241,16 +241,18 @@ void solveProblems(AcequiaManager& manager) {
 	}
 
 	// Identify canals.
+	
+	// Create canal variables to be assigned to later.
 	Canal* canalA = nullptr;
 	Canal* canalB = nullptr;
 	Canal* canalC = nullptr;
 	Canal* canalD = nullptr;
 
 	for (auto c : canals) { // Iterate through canal pointers and assign them to respective canalA/B/C/D variables.
-		if (c->name == "Canal A") canalA = c; // Canal water movement is North -> South.
-		else if (c->name == "Canal B") canalB = c; // Canal water movement is South -> East.
-		else if (c->name == "Canal C") canalC = c; // Canal water movement is North -> East.
-		else if (c->name == "Canal D") canalD = c; // Canal water movement is East -> North.
+		if (c->name == "Canal A") canalA = c;  			// Assignment of Canal A to canalA 		// Canal water movement is North -> South.
+		else if (c->name == "Canal B") canalB = c; 	// Assignment of Canal B to canalB 		//Canal water movement is South -> East.
+		else if (c->name == "Canal C") canalC = c; 	// Assignment of Canal C to canalC 		// Canal water movement is North -> East.
+		else if (c->name == "Canal D") canalD = c; 	// Assignment of Canal D to canalC 		// Canal water movement is East -> North.
 	}
 
 	if (!canalA || !canalB || !canalC || !canalD) { // Same error handling as north/south/east but for canals.
@@ -261,7 +263,7 @@ void solveProblems(AcequiaManager& manager) {
 	// Main loop to keep code going and automantically move time forward until either problem is solved or max time has been reached.
 	while (!manager.isSolved && manager.hour != manager.SimulationMax) {
 
-		// Start with canals closed at the start of each hour.
+		// Close canals at the start of each hour.
 		for (auto c : canals) {
 			c->toggleOpen(false);
 			c->setFlowRate(0.0);
@@ -283,7 +285,7 @@ void solveProblems(AcequiaManager& manager) {
 			double gap = std::min(northExcess, southDeficit);
 			double flow = chooseFlow(gap);
 			if (flow > 0.0) {
-				canalA->setFlowRate(flow);
+				canalA->setFlowRate(flow); 	// Canal A flows North to South.
 				canalA->toggleOpen(true);
 			}
 		}
@@ -293,7 +295,7 @@ void solveProblems(AcequiaManager& manager) {
 			double gap = std::min(southExcess, eastDeficit);
 			double flow = chooseFlow(gap);
 			if (flow > 0.0) {
-				canalB->setFlowRate(flow);
+				canalB->setFlowRate(flow); 	// Canal B flows South to East.
 				canalB->toggleOpen(true);
 			}
 		}
@@ -303,7 +305,7 @@ void solveProblems(AcequiaManager& manager) {
 			double gap = std::min(northExcess, eastDeficit);
 			double flow = chooseFlow(gap);
 			if (flow > 0.0) {
-				canalC->setFlowRate(flow);
+				canalC->setFlowRate(flow); // Canal C flows North to East.
 				canalC->toggleOpen(true);
 			}
 		}
@@ -313,7 +315,7 @@ void solveProblems(AcequiaManager& manager) {
 			double gap = std::min(eastExcess, northDeficit);
 			double flow = chooseFlow(gap);
 			if (flow > 0.0) {
-				canalD->setFlowRate(flow);
+				canalD->setFlowRate(flow); 	// Canal D flows East to North.
 				canalD->toggleOpen(true);
 			}
 		}
@@ -323,9 +325,9 @@ void solveProblems(AcequiaManager& manager) {
 			double gap = std::min(eastExcess, southDeficit);
 			double flow = chooseFlow(gap);
 			if (flow > 0.0) {
-				canalD->setFlowRate(flow);
+				canalD->setFlowRate(flow); 	// Canal D flows East to North.
 				canalD->toggleOpen(true);
-				canalA->setFlowRate(flow);
+				canalA->setFlowRate(flow); 	// Canal A flows North to South.
 				canalA->toggleOpen(true);
 			}
 		}
@@ -335,9 +337,9 @@ void solveProblems(AcequiaManager& manager) {
 			double gap = std::min(southExcess, northDeficit);
 			double flow = chooseFlow(gap);
 			if (flow > 0.0) {
-				canalB->setFlowRate(flow);
+				canalB->setFlowRate(flow); 	// Canal B flows South to East.
 				canalB->toggleOpen(true);
-				canalD->setFlowRate(flow);
+				canalD->setFlowRate(flow); 	// Canal D flows East to North.
 				canalD->toggleOpen(true);
 			}
 		}
