@@ -218,9 +218,9 @@ double deficit(const Region* r) {
 // Dynamically choose flow rate based on deficit gap.
 double chooseFlow(double gap) {
 	if (gap > 15) return 1.0; 	// Large deficit.
-	if (gap > 5) return 0.5; 	 	// Medium deficit.
-	if (gap > 1) return 0.2; 		// small deficit.
-	if (gap > 0.01) return 0.1;	// tiny deficit.
+	if (gap > 5) return 0.85; 	 	// Medium deficit.
+	if (gap > 1) return 0.55; 		// small deficit.
+	if (gap > 0.001) return 0.1;	// tiny deficit.
 	return 0.0; 								// No deficit ignore.
 }
 
@@ -247,10 +247,10 @@ void solveProblems(AcequiaManager& manager) {
 	Canal* canalD = nullptr;
 
 	for (auto c : canals) { // Iterate through canal pointers and assign them to respective canalA/B/C/D variables.
-		if (c->name == "Canal A") canalA = c;
-		else if (c->name == "Canal B") canalB = c;
-		else if (c->name == "Canal C") canalC = c;
-		else if (c->name == "Canal D") canalD = c;
+		if (c->name == "Canal A") canalA = c; // Canal water movement is North -> South.
+		else if (c->name == "Canal B") canalB = c; // Canal water movement is South -> East.
+		else if (c->name == "Canal C") canalC = c; // Canal water movement is North -> East.
+		else if (c->name == "Canal D") canalD = c; // Canal water movement is East -> North.
 	}
 
 	if (!canalA || !canalB || !canalC || !canalD) { // Same error handling as north/south/east but for canals.
@@ -313,6 +313,30 @@ void solveProblems(AcequiaManager& manager) {
 			double gap = std::min(eastExcess, northDeficit);
 			double flow = chooseFlow(gap);
 			if (flow > 0.0) {
+				canalD->setFlowRate(flow);
+				canalD->toggleOpen(true);
+			}
+		}
+
+		// Send water from east (canalD and canalA) to south if south needs water and east has excess.
+		if ((south->isInDrought || southDeficit > 0) && eastExcess > 0) {
+			double gap = std::min(eastExcess, southDeficit);
+			double flow = chooseFlow(gap);
+			if (flow > 0.0) {
+				canalD->setFlowRate(flow);
+				canalD->toggleOpen(true);
+				canalA->setFlowRate(flow);
+				canalA->toggleOpen(true);
+			}
+		}
+
+		// Send water from south (canalB and canalD) to north if north needs water and south has excess.
+		if ((north->isInDrought || northDeficit > 0) && southExcess > 0) {
+			double gap = std::min(southExcess, northDeficit);
+			double flow = chooseFlow(gap);
+			if (flow > 0.0) {
+				canalB->setFlowRate(flow);
+				canalB->toggleOpen(true);
 				canalD->setFlowRate(flow);
 				canalD->toggleOpen(true);
 			}
