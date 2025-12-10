@@ -1,5 +1,8 @@
 #include "acequia_manager.h"
 #include <iostream>
+#include <string>
+#include <vector>
+
 
 /*Instructions for this problem:
 
@@ -46,7 +49,7 @@ void solveProblems(AcequiaManager& manager)
 */
 
 
-/*example 2 format*/
+/*example 2 format
 
 void solveProblems(AcequiaManager& manager)
 {
@@ -78,7 +81,7 @@ void solveProblems(AcequiaManager& manager)
 		manager.nexthour();
 	}
 }
-
+*/
 
 /*example 2*/
 /*
@@ -192,3 +195,149 @@ void solveProblems(AcequiaManager& manager)
 	}
 }
 */
+
+// Find region by it's name (North, South, East)
+Region* findRegionByName(const std::vector<Region*>& regions, const std::string& name) {
+	for (auto r : regions) { // Loop through the regions
+		if (r->name == name) return r; // Return region name to pointer r.
+	}
+	return nullptr;
+}
+
+// Funciton to find excess water in region using r pointer establish in function above.
+double excess(const Region* r) {
+	return r->waterLevel - r->waterNeed;
+}
+
+// Function to find how much wafer a region needs/missing.
+double deficit(const Region* r) {
+	double d = r->waterNeed - r->waterLevel;
+	return d > 0 ? d : 0.0; // Condensed if-else expression if d is greater than 0 return the value of d, else return 0.0. ("condition" ? Value_if_true : Value_if_false)
+}
+
+// Dynamically choose flow rate based on deficit gap.
+double chooseFlow(double gap) {
+	if (gap > 15) return 1.0; 	// Large deficit.
+	if (gap > 5) return 0.5; 	 	// Medium deficit.
+	if (gap > 1) return 0.2; 		// small deficit.
+	if (gap > 0.01) return 0.1;	// tiny deficit.
+	return 0.0; 								// No deficit ignore.
+}
+
+void solveProblems(AcequiaManager& manager) {
+
+	// Get regions and canals from manager.
+	auto regions = manager.getRegions();
+	auto canals = manager.getCanals();
+
+	// Identify region names using findRegionByName funciton.
+	Region* north = findRegionByName(regions, "North"); // Store the address of North region in variable north.
+	Region* south = findRegionByName(regions, "South"); // Same as above but for south.
+	Region* east = findRegionByName(regions, "East"); 	// Repeated for East.
+
+	if (!north || !south || !east) { // Error handling if findRegionByName function doesn't work properly.
+		std::cerr << "Error: Could not find expected regions.\n";
+		return;
+	}
+
+	// Identify canals.
+	Canal* canalA = nullptr;
+	Canal* canalB = nullptr;
+	Canal* canalC = nullptr;
+	Canal* canalD = nullptr;
+
+	for (auto c : canals) { // Iterate through canal pointers and assign them to respective canalA/B/C/D variables.
+		if (c->name == "Canal A") canalA = c;
+		else if (c->name == "Canal B") canalB = c;
+		else if (c->name == "Canal C") canalC = c;
+		else if (c->name == "Canal D") canalD = c;
+	}
+
+	if (!canalA || !canalB || !canalC || !canalD) { // Same error handling as north/south/east but for canals.
+		std::cerr << "Error: Could not find expected canals.\n";
+		return;
+	}
+
+	// Main loop to keep code going and automantically move time forward until either problem is solved or max time has been reached.
+	while (!manager.isSolved && manager.hour != manager.SimulationMax) {
+
+		// Start with canals closed at the start of each hour.
+		for (auto c : canals) {
+			c->toggleOpen(false);
+			c->setFlowRate(0.0);
+		}
+
+		// Calculate region status each hour.
+		double northExcess = excess(north);
+		double southExcess = excess(south);
+		double eastExcess = excess(east);
+
+		double northDeficit = deficit(north);
+		double southDeficit = deficit(south);
+		double eastDeficit = deficit(east);
+
+		// Have region send water to other regions based on deficit and excess.
+	
+		// Send water from North (canalA) to South if south needs water and north has excess.
+		if ((south->isInDrought || southDeficit > 0) && northExcess > 0) {
+			double gap = std::min(northExcess, southDeficit);
+			double flow = chooseFlow(gap);
+			if (flow > 0.0) {
+				canalA->setFlowRate(flow);
+				canalA->toggleOpen(true);
+			}
+		}
+
+		// Send water from South (canalB) to East if East needs water and south has excess.
+		if ((east->isInDrought || eastDeficit > 0) && southExcess > 0) {
+			double gap = std::min(southExcess, eastDeficit);
+			double flow = chooseFlow(gap);
+			if (flow > 0.0) {
+				canalB->setFlowRate(flow);
+				canalB->toggleOpen(true);
+			}
+		}
+
+		// Send water from South (canalB) to North if North needs water and south has excess.
+		if ((north->isInDrought || northDeficit > 0) && southExcess > 0) {
+			double gap = std::min(southExcess, northDeficit);
+			double flow = chooseFlow(gap);
+			if (flow > 0.0) {
+				canalB->setFlowRate(flow);
+				canalB->toggleOpen(true);
+			}
+		}
+
+		// Send water from North (canalC) to East if East needs water and North has excess.
+		if ((east->isInDrought || eastDeficit > 0) && northExcess > 0) {
+			double gap = std::min(northExcess, eastDeficit);
+			double flow = chooseFlow(gap);
+			if (flow > 0.0) {
+				canalC->setFlowRate(flow);
+				canalC->toggleOpen(true);
+			}
+		}
+
+		// Send water from east (canaD) to north if North needs water and east has excess.
+		if ((north->isInDrought || northDeficit > 0) && eastExcess > 0) {
+			double gap = std::min(eastExcess, northDeficit);
+			double flow = chooseFlow(gap);
+			if (flow > 0.0) {
+				canalD->setFlowRate(flow);
+				canalD->toggleOpen(true);
+			}
+		}
+
+		// Print out the status of regions each hour.
+		std::cout << "Hour " << manager.hour << ":\n";
+		std::cout << " North: Level: " << north->waterLevel << " Need: " << north->waterNeed << " is Flooded: " 
+			<< (north->isFlooded ? "YES" : "NO") << " in Drought: " << (north->isInDrought ? "YES" : "NO") << std::endl;
+		std::cout << " South: Level: " << south->waterLevel << " Need: " << south->waterNeed << " is Flooded: " 
+			<< (south->isFlooded ? "YES" : "NO") << " in Drought: " << (south->isInDrought ? "YES" : "NO") << std::endl;
+		std::cout << " East: Level: " << east->waterLevel << " Need: " << east->waterNeed << " is Flooded: " 
+			<< (east->isFlooded ? "YES" : "NO") << " in Drought: " << (east->isInDrought ? "YES" : "NO") << std::endl << std::endl;
+
+		// Call nexthour function to advance simulation time.
+		manager.nexthour();
+	}
+}
